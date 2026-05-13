@@ -1,0 +1,14 @@
+.playlists {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.playlists h1 {
+  margin-bottom: 24px;
+}
+
+.playlists-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}

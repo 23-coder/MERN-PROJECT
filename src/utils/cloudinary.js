@@ -15,13 +15,22 @@ const uploadOnCloudinary = async (localFilePath) => {
         const response = await cloudinary.uploader.upload(localFilePath, {
             resource_type: "auto"
         })
-        // file has been uploaded successfull
+        // file has been uploaded successfully
         //console.log("file is uploaded on cloudinary ", response.url);
-        fs.unlinkSync(localFilePath)
+        try {
+            fs.unlinkSync(localFilePath)
+        } catch (unlinkError) {
+            console.warn("Unable to delete temporary file after upload:", unlinkError.message || unlinkError)
+        }
         return response;
 
     } catch (error) {
-        fs.unlinkSync(localFilePath) // remove the locally saved temporary file as the upload operation got failed
+        console.error("Cloudinary upload failed:", error.message || error)
+        try {
+            fs.unlinkSync(localFilePath) // remove the locally saved temporary file as the upload operation got failed
+        } catch (unlinkError) {
+            console.warn("Unable to delete temporary file after failed upload:", unlinkError.message || unlinkError)
+        }
         return null;
     }
 }

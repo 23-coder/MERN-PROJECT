@@ -7,20 +7,47 @@ import jwt from "jsonwebtoken"
 import mongoose from "mongoose";
 
 
-const generateAccessAndRefereshTokens = async(userId) =>{
+const generateAccessAndRefereshTokens = async (user) => {
     try {
-        const user = await User.findById(userId)
-        const accessToken = user.generateAccessToken()
-        const refreshToken = user.generateRefreshToken()
+        if (!user || !user._id) {
+            throw new ApiError(500, "Invalid user object for token generation")
+        }
 
-        user.refreshToken = refreshToken
-        await user.save({ validateBeforeSave: false })
+        // Ensure a Mongoose document is used so save() is available
+        const userDoc = typeof user.save === 'function' ? user : await User.findById(user._id)
+        if (!userDoc) {
+            throw new ApiError(500, "Failed to resolve user document for token generation")
+        }
+
+        const accessToken = jwt.sign(
+            {
+                _id: userDoc._id,
+                email: userDoc.email,
+                username: userDoc.username,
+                fullName: userDoc.fullName
+            },
+            process.env.ACCESS_TOKEN_SECRET,
+            {
+                expiresIn: process.env.ACCESS_TOKEN_EXPIRY
+            }
+        )
+        const refreshToken = jwt.sign(
+            {
+                _id: userDoc._id,
+            },
+            process.env.REFRESH_TOKEN_SECRET,
+            {
+                expiresIn: process.env.REFRESH_TOKEN_EXPIRY
+            }
+        )
+        userDoc.refreshToken = refreshToken
+        await userDoc.save({ validateBeforeSave: false })
 
         return {accessToken, refreshToken}
 
-
     } catch (error) {
-        throw new ApiError(500, "Something went wrong while generating referesh and access token")
+        console.error("Token generation error:", error.message || error);
+        throw new ApiError(500, "Something went wrong while generating refresh and access token: " + error.message)
     }
 }
 
@@ -55,45 +82,63 @@ const registerUser = asyncHandler( async (req, res) => {
     //console.log(req.files);
 
     const avatarLocalPath = req.files?.avatar[0]?.path;
-    //const coverImageLocalPath = req.files?.coverImage[0]?.path;
-
+    
     let coverImageLocalPath;
     if (req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0) {
         coverImageLocalPath = req.files.coverImage[0].path
     }
     
-
-    if (!avatarLocalPath) {
-        throw new ApiError(400, "Avatar file is required")
+    // Avatar is optional for registration
+    let avatar = null;
+     let coverImage = null;
+    
+    if (avatarLocalPath) {
+        avatar = await uploadOnCloudinary(avatarLocalPath)
     }
-
-    const avatar = await uploadOnCloudinary(avatarLocalPath)
-    const coverImage = await uploadOnCloudinary(coverImageLocalPath)
-
-    if (!avatar) {
-        throw new ApiError(400, "Avatar file is required")
+    
+    if (coverImageLocalPath) {
+        coverImage = await uploadOnCloudinary(coverImageLocalPath)
     }
    
 
     const user = await User.create({
         fullName,
-        avatar: avatar.url,
+        avatar: avatar?.url || "",
         coverImage: coverImage?.url || "",
-        email, 
+        email,
         password,
         username: username.toLowerCase()
     })
 
-    const createdUser = await User.findById(user._id).select(
+    const createdUser = await User.findById(user._id)
+    const responseUser = await User.findById(user._id).select(
         "-password -refreshToken"
     )
 
-    if (!createdUser) {
+    if (!createdUser || !responseUser) {
         throw new ApiError(500, "Something went wrong while registering the user")
     }
 
-    return res.status(201).json(
-        new ApiResponse(200, createdUser, "User registered Successfully")
+    // Generate tokens for auto-login after registration
+    const { accessToken, refreshToken } = await generateAccessAndRefereshTokens(createdUser)
+
+    const options = {
+        httpOnly: true,
+        secure: true
+    }
+
+    return res
+    .status(201)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+        new ApiResponse(
+            200,
+            {
+                user: responseUser, accessToken, refreshToken
+            },
+            "User registered and logged in Successfully"
+        )
     )
 
 } )
@@ -133,7 +178,7 @@ const loginUser = asyncHandler(async (req, res) =>{
     throw new ApiError(401, "Invalid user credentials")
     }
 
-   const {accessToken, refreshToken} = await generateAccessAndRefereshTokens(user._id)
+   const {accessToken, refreshToken} = await generateAccessAndRefereshTokens(user)
 
     const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
 
@@ -212,7 +257,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
             secure: true
         }
     
-        const {accessToken, newRefreshToken} = await generateAccessAndRefereshTokens(user._id)
+        const {accessToken, refreshToken: newRefreshToken} = await generateAccessAndRefereshTokens(user)
     
         return res
         .status(200)

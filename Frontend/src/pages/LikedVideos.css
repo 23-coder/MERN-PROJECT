@@ -1,0 +1,14 @@
+.liked-videos {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.liked-videos h1 {
+  margin-bottom: 24px;
+}
+
+.videos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
