@@ -197,6 +197,24 @@
   color: #030303;
 }
 
+.comment-like-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  color: #606060;
+  padding: 4px 0;
+  margin-top: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: color 0.15s;
+}
+.comment-like-btn:hover { color: #030303; }
+.comment-like-btn.comment-liked { color: #065fd4; font-weight: 500; }
+
+.action-btn.liked { background-color: #e8f0fe; color: #065fd4; }
+
 @media (max-width: 768px) {
   .video-detail {
     padding: 0;

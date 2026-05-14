@@ -54,7 +54,28 @@
 .empty-msg { color: #606060; padding: 40px 0; }
 
 .tweet-card { background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 16px; margin-bottom: 12px; }
-.tweet-card p { margin: 0 0 8px; }
-.tweet-date { font-size: 12px; color: #606060; }
+
+.tweet-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.tweet-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.tweet-username { font-weight: 500; font-size: 14px; display: block; }
+.tweet-date { font-size: 12px; color: #606060; display: block; }
+
+.tweet-content { margin: 0 0 10px; font-size: 14px; line-height: 1.5; }
+
+.tweet-like-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  color: #606060;
+  padding: 4px 8px;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: background-color 0.15s, color 0.15s;
+}
+.tweet-like-btn:hover { background: #f0f0f0; color: #030303; }
+.tweet-like-btn.tweet-liked { color: #065fd4; font-weight: 500; }
 
 .channel-loading, .channel-error { display: flex; justify-content: center; align-items: center; min-height: 400px; color: #606060; }

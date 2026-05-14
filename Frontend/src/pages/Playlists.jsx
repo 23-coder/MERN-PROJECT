@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { getUserPlaylists, createPlaylist, deletePlaylist } from '../api/playlist.api';
 import { useAuth } from '../context/AuthContext';
 import './Playlists.css';
@@ -48,7 +49,9 @@ const Playlists = () => {
     }
   };
 
-  const handleDelete = async (playlistId) => {
+  const handleDelete = async (e, playlistId) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (!window.confirm('Delete this playlist?')) return;
     try {
       await deletePlaylist(playlistId);
@@ -69,7 +72,7 @@ const Playlists = () => {
         </button>
       </div>
 
-      {error && <div className="form-error">{error}</div>}
+      {error && <div className="form-error" style={{ marginBottom: 16 }}>{error}</div>}
 
       {showForm && (
         <form className="playlist-form" onSubmit={handleCreate}>
@@ -101,18 +104,21 @@ const Playlists = () => {
         ) : (
           playlists.map(playlist => (
             <div key={playlist._id} className="playlist-card">
-              <div className="playlist-thumb">
-                <span>🎬</span>
-                <span className="playlist-count">{playlist.totalVideos} videos</span>
-              </div>
-              <div className="playlist-info">
-                <h3>{playlist.name}</h3>
-                <p>{playlist.description}</p>
-                <span className="playlist-views">{playlist.totalViews || 0} total views</span>
-              </div>
+              <Link to={`/playlist/${playlist._id}`} className="playlist-link">
+                <div className="playlist-thumb">
+                  <span>🎬</span>
+                  <span className="playlist-count">{playlist.totalVideos} videos</span>
+                </div>
+                <div className="playlist-info">
+                  <h3>{playlist.name}</h3>
+                  <p>{playlist.description}</p>
+                  <span className="playlist-views">{playlist.totalViews || 0} total views</span>
+                  <span className="playlist-view-cta">View playlist →</span>
+                </div>
+              </Link>
               <button
                 className="delete-btn"
-                onClick={() => handleDelete(playlist._id)}
+                onClick={(e) => handleDelete(e, playlist._id)}
               >
                 🗑️
               </button>

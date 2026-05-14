@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getVideoById } from '../api/video.api';
 import { getVideoComments, addComment } from '../api/comment.api';
-import { toggleVideoLike } from '../api/like.api';
+import { toggleVideoLike, toggleCommentLike } from '../api/like.api';
 import { toggleSubscription } from '../api/subscription.api';
 import { useAuth } from '../context/AuthContext';
 import './VideoDetail.css';
@@ -10,6 +10,7 @@ import './VideoDetail.css';
 const VideoDetail = () => {
   const { videoId } = useParams();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [video, setVideo] = useState(null);
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -17,6 +18,7 @@ const VideoDetail = () => {
   const [commentText, setCommentText] = useState('');
   const [isLiked, setIsLiked] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
+  const [submittingComment, setSubmittingComment] = useState(false);
 
   useEffect(() => {
     fetchVideo();
@@ -28,14 +30,13 @@ const VideoDetail = () => {
       setLoading(true);
       setError(null);
       const response = await getVideoById(videoId);
-
       if (response.data.data) {
         setVideo(response.data.data);
       } else {
-        setError('Video data not found in response');
+        setError('Video data not found');
       }
-    } catch (error) {
-      setError(error.response?.data?.message || error.message || 'Failed to load video');
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Failed to load video');
     } finally {
       setLoading(false);
     }
@@ -54,17 +55,20 @@ const VideoDetail = () => {
   const handleAddComment = async (e) => {
     e.preventDefault();
     if (!commentText.trim()) return;
-
     try {
+      setSubmittingComment(true);
       await addComment(videoId, { content: commentText });
       setCommentText('');
       fetchComments();
-    } catch (error) {
-      setError(error.response?.data?.message || 'Failed to add comment');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to add comment');
+    } finally {
+      setSubmittingComment(false);
     }
   };
 
   const handleLike = async () => {
+    if (!user) { navigate('/login'); return; }
     try {
       const res = await toggleVideoLike(videoId);
       setIsLiked(res.data.data.isLiked);
@@ -83,9 +87,31 @@ const VideoDetail = () => {
     }
   };
 
+  const handleCommentLike = async (commentId) => {
+    if (!user) { navigate('/login'); return; }
+
+    // Optimistic update
+    setComments(prev => prev.map(c =>
+      c._id === commentId
+        ? { ...c, isLiked: !c.isLiked, likesCount: (c.likesCount || 0) + (c.isLiked ? -1 : 1) }
+        : c
+    ));
+
+    try {
+      await toggleCommentLike(commentId);
+    } catch {
+      // Revert on error
+      setComments(prev => prev.map(c =>
+        c._id === commentId
+          ? { ...c, isLiked: !c.isLiked, likesCount: (c.likesCount || 0) + (c.isLiked ? -1 : 1) }
+          : c
+      ));
+    }
+  };
+
   if (loading) return <div className="loading">Loading video...</div>;
-  if (error) return <div className="error" style={{padding: '20px', color: 'red'}}>Error: {error}</div>;
-  if (!video) return <div className="error" style={{padding: '20px', color: 'red'}}>Video not found</div>;
+  if (error) return <div className="error" style={{ padding: '20px', color: 'red' }}>Error: {error}</div>;
+  if (!video) return <div className="error" style={{ padding: '20px', color: 'red' }}>Video not found</div>;
 
   return (
     <div className="video-detail">
@@ -111,10 +137,10 @@ const VideoDetail = () => {
           </button>
           <button className="action-btn" onClick={() => {
             if (navigator.share) {
-              navigator.share({ title: video.title, url: window.location.href })
+              navigator.share({ title: video.title, url: window.location.href });
             } else {
-              navigator.clipboard.writeText(window.location.href)
-              alert('Link copied to clipboard!')
+              navigator.clipboard.writeText(window.location.href);
+              alert('Link copied to clipboard!');
             }
           }}>🔗 Share</button>
         </div>
@@ -163,7 +189,9 @@ const VideoDetail = () => {
               onChange={(e) => setCommentText(e.target.value)}
               className="comment-input"
             />
-            <button type="submit" className="comment-btn">Comment</button>
+            <button type="submit" disabled={submittingComment} className="comment-btn">
+              {submittingComment ? '...' : 'Comment'}
+            </button>
           </form>
         ) : (
           <p style={{ color: '#606060', marginBottom: '16px' }}>
@@ -182,6 +210,12 @@ const VideoDetail = () => {
               <div className="comment-content">
                 <p className="comment-author">{comment.owner?.username}</p>
                 <p className="comment-text">{comment.content}</p>
+                <button
+                  className={`comment-like-btn ${comment.isLiked ? 'comment-liked' : ''}`}
+                  onClick={() => handleCommentLike(comment._id)}
+                >
+                  👍 {comment.likesCount || 0}
+                </button>
               </div>
             </div>
           ))}

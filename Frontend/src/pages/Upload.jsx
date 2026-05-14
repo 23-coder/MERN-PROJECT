@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { publishVideo } from '../api/video.api';
+import { togglePublish } from '../api/video.api';
 import './Upload.css';
 
 const Upload = () => {
@@ -12,19 +13,15 @@ const Upload = () => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [uploadedVideo, setUploadedVideo] = useState(null);
+  const [publishing, setPublishing] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
     if (e.target.name === 'videoFile' || e.target.name === 'thumbnail') {
-      setFormData({
-        ...formData,
-        [e.target.name]: e.target.files[0],
-      });
+      setFormData({ ...formData, [e.target.name]: e.target.files[0] });
     } else {
-      setFormData({
-        ...formData,
-        [e.target.name]: e.target.value,
-      });
+      setFormData({ ...formData, [e.target.name]: e.target.value });
     }
   };
 
@@ -34,37 +31,67 @@ const Upload = () => {
     setLoading(true);
 
     try {
-      if (!formData.videoFile) {
-        setError("Please select a video file");
-        return;
-      }
-      if (!formData.thumbnail) {
-        setError("Please select a thumbnail image");
-        return;
-      }
-      if (!formData.title.trim()) {
-        setError("Please enter a video title");
-        return;
-      }
-      if (!formData.description.trim()) {
-        setError("Please enter a video description");
-        return;
-      }
+      if (!formData.videoFile) { setError('Please select a video file'); return; }
+      if (!formData.thumbnail) { setError('Please select a thumbnail image'); return; }
+      if (!formData.title.trim()) { setError('Please enter a video title'); return; }
+      if (!formData.description.trim()) { setError('Please enter a video description'); return; }
 
-      const uploadData = new FormData();
-      uploadData.append('videoFile', formData.videoFile);
-      uploadData.append('thumbnail', formData.thumbnail);
-      uploadData.append('title', formData.title);
-      uploadData.append('description', formData.description);
+      const data = new FormData();
+      data.append('videoFile', formData.videoFile);
+      data.append('thumbnail', formData.thumbnail);
+      data.append('title', formData.title);
+      data.append('description', formData.description);
 
-      await publishVideo(uploadData);
-      navigate('/dashboard');
+      const response = await publishVideo(data);
+      setUploadedVideo(response.data.data);
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Upload failed. Please try again.');
     } finally {
       setLoading(false);
     }
   };
+
+  const handlePublishNow = async () => {
+    try {
+      setPublishing(true);
+      await togglePublish(uploadedVideo._id);
+      navigate(`/video/${uploadedVideo._id}`);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to publish. Check Dashboard to publish later.');
+      setPublishing(false);
+    }
+  };
+
+  if (uploadedVideo) {
+    return (
+      <div className="upload-container">
+        <div className="upload-box upload-success-box">
+          <div className="upload-success-icon">✓</div>
+          <h2>Video uploaded successfully!</h2>
+          <p className="upload-success-msg">
+            Your video <strong>"{uploadedVideo.title}"</strong> was saved as a draft.
+            Publish it now to make it visible to everyone, or save it as a draft and publish later from your Dashboard.
+          </p>
+          {error && <div className="error-message">{error}</div>}
+          <div className="upload-success-actions">
+            <button
+              className="publish-now-btn"
+              onClick={handlePublishNow}
+              disabled={publishing}
+            >
+              {publishing ? 'Publishing...' : '🌍 Publish now'}
+            </button>
+            <button
+              className="save-draft-btn"
+              onClick={() => navigate('/dashboard')}
+            >
+              💾 Save as draft
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="upload-container">
@@ -123,7 +150,7 @@ const Upload = () => {
           </div>
 
           <button type="submit" disabled={loading} className="upload-button">
-            {loading ? 'Uploading...' : 'Upload'}
+            {loading ? 'Uploading... (this may take 1–2 minutes)' : 'Upload'}
           </button>
         </form>
       </div>

@@ -79,3 +79,68 @@
   background-color: #999;
   cursor: not-allowed;
 }
+
+.upload-success-box {
+  text-align: center;
+}
+
+.upload-success-icon {
+  width: 64px;
+  height: 64px;
+  background: #e8f5e9;
+  color: #2e7d32;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0 auto 20px;
+}
+
+.upload-success-box h2 {
+  font-size: 22px;
+  margin-bottom: 12px;
+  color: #030303;
+}
+
+.upload-success-msg {
+  color: #606060;
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 28px;
+}
+
+.upload-success-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.publish-now-btn {
+  background: #065fd4;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.publish-now-btn:hover:not(:disabled) { background: #0255c3; }
+.publish-now-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.save-draft-btn {
+  background: #f0f0f0;
+  color: #030303;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.save-draft-btn:hover { background: #e0e0e0; }

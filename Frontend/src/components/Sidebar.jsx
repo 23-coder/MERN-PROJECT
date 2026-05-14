@@ -23,18 +23,11 @@ const Sidebar = ({ isOpen }) => {
       <div className="sidebar-content">
         <div className="sidebar-section">
           <h3>Menu</h3>
-          <Link to="/" className="sidebar-link">
-            🏠 Home
-          </Link>
-          <Link to="/liked-videos" className="sidebar-link">
-            👍 Liked Videos
-          </Link>
-          <Link to="/playlists" className="sidebar-link">
-            📋 Playlists
-          </Link>
-          <Link to="/dashboard" className="sidebar-link">
-            📊 Dashboard
-          </Link>
+          <Link to="/" className="sidebar-link">🏠 Home</Link>
+          <Link to="/liked-videos" className="sidebar-link">👍 Liked Videos</Link>
+          <Link to="/history" className="sidebar-link">🕐 Watch History</Link>
+          <Link to="/playlists" className="sidebar-link">📋 Playlists</Link>
+          <Link to="/dashboard" className="sidebar-link">📊 Dashboard</Link>
         </div>
 
         <hr />

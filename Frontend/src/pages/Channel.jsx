@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getChannelProfile } from '../api/auth.api';
 import { getAllVideos } from '../api/video.api';
 import { toggleSubscription } from '../api/subscription.api';
 import { getUserTweets } from '../api/tweet.api';
+import { toggleTweetLike } from '../api/like.api';
 import { useAuth } from '../context/AuthContext';
 import './Channel.css';
 
 const Channel = () => {
   const { username } = useParams();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [channel, setChannel] = useState(null);
   const [videos, setVideos] = useState([]);
   const [tweets, setTweets] = useState([]);
@@ -29,10 +31,11 @@ const Channel = () => {
       setChannel(channelData);
       setIsSubscribed(channelData.isSubscribed);
 
-      const videosRes = await getAllVideos({ userId: channelData._id });
+      const [videosRes, tweetsRes] = await Promise.all([
+        getAllVideos({ userId: channelData._id }),
+        getUserTweets(channelData._id),
+      ]);
       setVideos(videosRes.data.data?.docs || []);
-
-      const tweetsRes = await getUserTweets(channelData._id);
       setTweets(tweetsRes.data.data || []);
     } catch (err) {
       console.error('Error fetching channel:', err);
@@ -49,8 +52,28 @@ const Channel = () => {
         ...prev,
         subscribersCount: prev.subscribersCount + (res.data.data.subscribed ? 1 : -1),
       }));
-    } catch (err) {
-      console.error('Subscribe error:', err);
+    } catch {
+      // silently ignore
+    }
+  };
+
+  const handleTweetLike = async (tweetId) => {
+    if (!user) { navigate('/login'); return; }
+
+    setTweets(prev => prev.map(t =>
+      t._id === tweetId
+        ? { ...t, isLiked: !t.isLiked, likesCount: (t.likesCount || 0) + (t.isLiked ? -1 : 1) }
+        : t
+    ));
+
+    try {
+      await toggleTweetLike(tweetId);
+    } catch {
+      setTweets(prev => prev.map(t =>
+        t._id === tweetId
+          ? { ...t, isLiked: !t.isLiked, likesCount: (t.likesCount || 0) + (t.isLiked ? -1 : 1) }
+          : t
+      ));
     }
   };
 
@@ -109,7 +132,11 @@ const Channel = () => {
               videos.map(video => (
                 <Link key={video._id} to={`/video/${video._id}`} className="video-card">
                   <div className="video-thumbnail">
-                    <img src={video.thumbnail} alt={video.title} onError={(e) => { e.target.src = 'https://placehold.co/320x180' }} />
+                    <img
+                      src={video.thumbnail}
+                      alt={video.title}
+                      onError={(e) => { e.target.src = 'https://placehold.co/320x180' }}
+                    />
                     <span className="video-duration">
                       {Math.floor(video.duration / 60)}:{String(Math.floor(video.duration % 60)).padStart(2, '0')}
                     </span>
@@ -131,8 +158,25 @@ const Channel = () => {
             ) : (
               tweets.map(tweet => (
                 <div key={tweet._id} className="tweet-card">
-                  <p>{tweet.content}</p>
-                  <span className="tweet-date">{new Date(tweet.createdAt).toLocaleDateString()}</span>
+                  <div className="tweet-header">
+                    <img
+                      src={tweet.ownerDetails?.avatar || 'https://placehold.co/36x36'}
+                      alt={tweet.ownerDetails?.username}
+                      className="tweet-avatar"
+                      onError={(e) => { e.target.src = 'https://placehold.co/36x36' }}
+                    />
+                    <div>
+                      <span className="tweet-username">{tweet.ownerDetails?.username}</span>
+                      <span className="tweet-date">{new Date(tweet.createdAt).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                  <p className="tweet-content">{tweet.content}</p>
+                  <button
+                    className={`tweet-like-btn ${tweet.isLiked ? 'tweet-liked' : ''}`}
+                    onClick={() => handleTweetLike(tweet._id)}
+                  >
+                    👍 {tweet.likesCount || 0}
+                  </button>
                 </div>
               ))
             )}

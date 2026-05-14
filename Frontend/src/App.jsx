@@ -15,7 +15,9 @@ const Profile = lazy(() => import('./pages/Profile'))
 const Channel = lazy(() => import('./pages/Channel'))
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const Playlists = lazy(() => import('./pages/Playlists'))
+const PlaylistDetail = lazy(() => import('./pages/PlaylistDetail'))
 const LikedVideos = lazy(() => import('./pages/LikedVideos'))
+const WatchHistory = lazy(() => import('./pages/WatchHistory'))
 
 const ProtectedRoute = ({ children }) => {
   const { user, isLoading } = useAuth()
@@ -24,7 +26,6 @@ const ProtectedRoute = ({ children }) => {
   return children
 }
 
-// Redirects already-logged-in users away from /login and /register
 const PublicOnlyRoute = ({ children }) => {
   const { user, isLoading } = useAuth()
   if (isLoading) return <LoadingSpinner fullPage />
@@ -53,7 +54,9 @@ function AppContent() {
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
               <Route path="/playlists" element={<ProtectedRoute><Playlists /></ProtectedRoute>} />
+              <Route path="/playlist/:playlistId" element={<ProtectedRoute><PlaylistDetail /></ProtectedRoute>} />
               <Route path="/liked-videos" element={<ProtectedRoute><LikedVideos /></ProtectedRoute>} />
+              <Route path="/history" element={<ProtectedRoute><WatchHistory /></ProtectedRoute>} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>
