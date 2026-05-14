@@ -13,15 +13,13 @@ const getAllVideos = asyncHandler(async (req, res) => {
 
     const pipeline = [];
 
-    // for using Full Text based search u need MongoDB Atlas
     if (query) {
         pipeline.push({
-            $search: {
-                index: "search-videos",
-                text: {
-                    query: query,
-                    path: ["title", "description"] //search only on title, desc
-                }
+            $match: {
+                $or: [
+                    { title: { $regex: query, $options: 'i' } },
+                    { description: { $regex: query, $options: 'i' } }
+                ]
             }
         });
     }
@@ -33,7 +31,8 @@ const getAllVideos = asyncHandler(async (req, res) => {
 
         pipeline.push({
             $match: {
-                owner: new mongoose.Types.ObjectId(userId)
+                owner: new mongoose.Types.ObjectId(userId),
+                isPublished: true
             }
         });
     } else {
@@ -74,7 +73,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
                     {
                         $project: {
                             username: 1,
-                            "avatar.url": 1,
+                            avatar: 1,
                             fullName: 1,
                         }
                     }

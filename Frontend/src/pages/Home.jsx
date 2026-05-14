@@ -17,7 +17,7 @@ const Home = () => {
     try {
       setLoading(true);
       const searchQuery = searchParams.get('search');
-      const params = searchQuery ? { search: searchQuery } : {};
+      const params = searchQuery ? { query: searchQuery } : {};
       const response = await getAllVideos(params);
       setVideos(response.data.data.docs || []);
       setError(null);

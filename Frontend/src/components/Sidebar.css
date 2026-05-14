@@ -49,6 +49,26 @@
   margin: 8px 0;
 }
 
+.sidebar-channel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sidebar-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.sidebar-empty {
+  font-size: 13px;
+  color: #999;
+  padding: 4px 12px;
+}
+
 @media (max-width: 768px) {
   .sidebar {
     position: fixed;

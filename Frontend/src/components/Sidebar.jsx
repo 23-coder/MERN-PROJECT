@@ -1,8 +1,23 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { getSubscribedChannels } from '../api/subscription.api';
 import './Sidebar.css';
 
 const Sidebar = ({ isOpen }) => {
+  const { user } = useAuth();
+  const [subscriptions, setSubscriptions] = useState([]);
+
+  useEffect(() => {
+    if (!user?._id) return;
+    getSubscribedChannels(user._id)
+      .then((res) => {
+        const raw = res.data.data || [];
+        setSubscriptions(raw.map((s) => s.subscribedChannel).filter(Boolean));
+      })
+      .catch(() => setSubscriptions([]));
+  }, [user?._id]);
+
   return (
     <aside className={`sidebar ${isOpen ? 'open' : 'closed'}`}>
       <div className="sidebar-content">
@@ -26,12 +41,23 @@ const Sidebar = ({ isOpen }) => {
 
         <div className="sidebar-section">
           <h3>Subscriptions</h3>
-          <Link to="/" className="sidebar-link">
-            Channel 1
-          </Link>
-          <Link to="/" className="sidebar-link">
-            Channel 2
-          </Link>
+          {subscriptions.length === 0 ? (
+            <p className="sidebar-empty">No subscriptions yet</p>
+          ) : (
+            subscriptions.map((ch) => (
+              <Link key={ch._id} to={`/channel/${ch.username}`} className="sidebar-link sidebar-channel">
+                {ch.avatar && (
+                  <img
+                    src={ch.avatar}
+                    alt={ch.username}
+                    className="sidebar-avatar"
+                    onError={(e) => { e.target.style.display = 'none' }}
+                  />
+                )}
+                <span>{ch.username}</span>
+              </Link>
+            ))
+          )}
         </div>
       </div>
     </aside>
