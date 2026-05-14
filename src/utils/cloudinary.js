@@ -25,16 +25,11 @@ const safeUnlink = (filePath) => {
 
 const uploadOnCloudinary = async (localFilePath) => {
     if (!localFilePath) return null
-    // Re-apply config at call time in case env vars weren't ready at module load
+    // Re-apply config at call time — env vars may not be ready at module load in ESM
     cloudinary.config({
         cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
         api_key: process.env.CLOUDINARY_API_KEY,
         api_secret: process.env.CLOUDINARY_API_SECRET
-    })
-    console.log("Cloudinary config:", {
-        cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-        api_key: process.env.CLOUDINARY_API_KEY,
-        api_secret: process.env.CLOUDINARY_API_SECRET ? "set" : "missing"
     })
     try {
         const response = await cloudinary.uploader.upload(localFilePath, {
