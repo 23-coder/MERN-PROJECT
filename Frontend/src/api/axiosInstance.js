@@ -52,7 +52,10 @@ api.interceptors.response.use(
       } catch (refreshError) {
         processQueue(refreshError)
         localStorage.removeItem('accessToken')
-        window.location.href = '/login'
+        const publicPaths = ['/login', '/register']
+        if (!publicPaths.includes(window.location.pathname)) {
+          window.location.href = '/login'
+        }
         return Promise.reject(refreshError)
       } finally {
         isRefreshing = false
