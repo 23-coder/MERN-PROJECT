@@ -49,9 +49,9 @@ const VideoDetail = () => {
       console.log('Fetching comments for video:', videoId);
       const response = await getVideoComments(videoId);
       console.log('Comments response:', response.data);
-      const commentsList = response.data.data;
-      // Ensure it's always an array
-      setComments(Array.isArray(commentsList) ? commentsList : []);
+      const data = response.data.data;
+      // aggregatePaginate returns { docs: [] }, plain array is a fallback
+      setComments(Array.isArray(data) ? data : data?.docs || []);
     } catch (error) {
       console.error('Error fetching comments:', error);
       setComments([]);
@@ -116,7 +116,14 @@ const VideoDetail = () => {
           <button onClick={handleLike} className={`action-btn ${isLiked ? 'liked' : ''}`}>
             👍 {isLiked ? 'Liked' : 'Like'}
           </button>
-          <button className="action-btn">⬇️ Share</button>
+          <button className="action-btn" onClick={() => {
+            if (navigator.share) {
+              navigator.share({ title: video.title, url: window.location.href })
+            } else {
+              navigator.clipboard.writeText(window.location.href)
+              alert('Link copied to clipboard!')
+            }
+          }}>🔗 Share</button>
         </div>
 
         <div className="video-channel">
