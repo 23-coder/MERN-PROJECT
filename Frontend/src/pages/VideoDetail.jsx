@@ -1,15 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { videoAPI, commentAPI, likeAPI } from '../api/apiService';
+import { useParams, Link } from 'react-router-dom';
+import { getVideoById } from '../api/video.api';
+import { getVideoComments, addComment } from '../api/comment.api';
+import { toggleVideoLike } from '../api/like.api';
+import { toggleSubscription } from '../api/subscription.api';
+import { useAuth } from '../context/AuthContext';
 import './VideoDetail.css';
 
 const VideoDetail = () => {
   const { videoId } = useParams();
+  const { user } = useAuth();
   const [video, setVideo] = useState(null);
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [commentText, setCommentText] = useState('');
+  const [isLiked, setIsLiked] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(false);
 
   useEffect(() => {
     fetchVideo();
@@ -21,7 +28,7 @@ const VideoDetail = () => {
       setLoading(true);
       setError(null);
       console.log('Fetching video:', videoId);
-      const response = await videoAPI.getVideoById(videoId);
+      const response = await getVideoById(videoId);
       console.log('Video response:', response.data);
       
       if (response.data.data) {
@@ -40,7 +47,7 @@ const VideoDetail = () => {
   const fetchComments = async () => {
     try {
       console.log('Fetching comments for video:', videoId);
-      const response = await commentAPI.getVideoComments(videoId);
+      const response = await getVideoComments(videoId);
       console.log('Comments response:', response.data);
       const commentsList = response.data.data;
       // Ensure it's always an array
@@ -56,7 +63,7 @@ const VideoDetail = () => {
     if (!commentText.trim()) return;
 
     try {
-      await commentAPI.addComment(videoId, { content: commentText });
+      await addComment(videoId, { content: commentText });
       setCommentText('');
       fetchComments();
     } catch (error) {
@@ -66,10 +73,20 @@ const VideoDetail = () => {
 
   const handleLike = async () => {
     try {
-      await likeAPI.toggleVideoLike(videoId);
-      fetchVideo();
+      const res = await toggleVideoLike(videoId);
+      setIsLiked(res.data.data.isLiked);
     } catch (error) {
       console.error('Error liking video:', error);
+    }
+  };
+
+  const handleSubscribe = async () => {
+    if (!video?.owner?._id) return;
+    try {
+      const res = await toggleSubscription(video.owner._id);
+      setIsSubscribed(res.data.data.subscribed);
+    } catch (error) {
+      console.error('Error subscribing:', error);
     }
   };
 
@@ -96,27 +113,36 @@ const VideoDetail = () => {
         </div>
 
         <div className="video-actions">
-          <button onClick={handleLike} className="action-btn">
-            👍 {video.likes} Like
+          <button onClick={handleLike} className={`action-btn ${isLiked ? 'liked' : ''}`}>
+            👍 {isLiked ? 'Liked' : 'Like'}
           </button>
-          <button className="action-btn">💬 Comment</button>
-          <button className="action-btn">📋 Save</button>
           <button className="action-btn">⬇️ Share</button>
         </div>
 
         <div className="video-channel">
           <div className="channel-info">
-            <img 
-              src={video.owner?.avatar || 'https://via.placeholder.com/50'} 
-              alt={video.owner?.username || 'Channel'} 
-              onError={(e) => e.target.src = 'https://via.placeholder.com/50'}
-            />
+            <Link to={`/channel/${video.owner?.username}`}>
+              <img
+                src={video.owner?.avatar || 'https://placehold.co/50x50'}
+                alt={video.owner?.username || 'Channel'}
+                onError={(e) => { e.target.src = 'https://placehold.co/50x50' }}
+              />
+            </Link>
             <div>
-              <h3>{video.owner?.username || 'Unknown Channel'}</h3>
-              <p>{video.owner?.subscribersCount || 0} subscribers</p>
+              <Link to={`/channel/${video.owner?.username}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                <h3>{video.owner?.username || 'Unknown Channel'}</h3>
+              </Link>
+              <p>{video.owner?.fullName}</p>
             </div>
           </div>
-          <button className="subscribe-btn">Subscribe</button>
+          {user && video.owner?.username && user.username !== video.owner.username && (
+            <button
+              onClick={handleSubscribe}
+              className={`subscribe-btn ${isSubscribed ? 'subscribed' : ''}`}
+            >
+              {isSubscribed ? 'Subscribed' : 'Subscribe'}
+            </button>
+          )}
         </div>
 
         <div className="video-description">

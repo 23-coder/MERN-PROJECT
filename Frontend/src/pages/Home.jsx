@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { videoAPI } from '../api/apiService';
+import { getAllVideos } from '../api/video.api';
 import './Home.css';
 
 const Home = () => {
@@ -18,7 +18,7 @@ const Home = () => {
       setLoading(true);
       const searchQuery = searchParams.get('search');
       const params = searchQuery ? { search: searchQuery } : {};
-      const response = await videoAPI.getAllVideos(params);
+      const response = await getAllVideos(params);
       setVideos(response.data.data.docs || []);
       setError(null);
     } catch (err) {

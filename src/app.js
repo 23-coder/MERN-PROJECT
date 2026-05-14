@@ -5,7 +5,14 @@ import cookieParser from "cookie-parser"
 const app = express()
 
 app.use(cors({
-    origin: process.env.CORS_ORIGIN,
+    origin: function (origin, callback) {
+        const allowed = (process.env.CORS_ORIGIN || '*').split(',').map(o => o.trim())
+        if (!origin || allowed.includes('*') || allowed.includes(origin)) {
+            callback(null, true)
+        } else {
+            callback(new Error('Not allowed by CORS'))
+        }
+    },
     credentials: true
 }))
 
@@ -38,5 +45,17 @@ app.use("/api/v1/playlist", playlistRouter)
 app.use("/api/v1/dashboard", dashboardRouter)
 
 // http://localhost:8000/api/v1/users/register
+
+// Global error handler — must be last middleware
+app.use((err, req, res, next) => {
+    const statusCode = err.statusCode || 500
+    const message = err.message || "Internal Server Error"
+    return res.status(statusCode).json({
+        statusCode,
+        message,
+        success: false,
+        errors: err.errors || []
+    })
+})
 
 export { app }

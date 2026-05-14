@@ -60,7 +60,7 @@ function AppContent() {
                 </ProtectedRoute>
               }
             />
-            <Route path="/channel/:channelId" element={<Channel />} />
+            <Route path="/channel/:username" element={<Channel />} />
             <Route
               path="/dashboard"
               element={

@@ -1,5 +1,5 @@
 import { createContext, useState, useContext, useEffect } from 'react';
-import { authAPI } from '../api/apiService';
+import { getCurrentUser, loginUser, registerUser, logoutUser } from '../api/auth.api';
 
 const AuthContext = createContext();
 
@@ -13,7 +13,7 @@ export const AuthProvider = ({ children }) => {
 
   const checkAuth = async () => {
     try {
-      const response = await authAPI.getCurrentUser();
+      const response = await getCurrentUser();
       setUser(response.data.data);
     } catch (error) {
       setUser(null);
@@ -23,14 +23,14 @@ export const AuthProvider = ({ children }) => {
   };
 
   const login = async (email, password) => {
-    const response = await authAPI.login({ email, password });
+    const response = await loginUser({ email, password });
     localStorage.setItem('accessToken', response.data.data.accessToken);
     setUser(response.data.data.user);
     return response.data.data;
   };
 
   const register = async (userData) => {
-    const response = await authAPI.register(userData);
+    const response = await registerUser(userData);
     localStorage.setItem('accessToken', response.data.data.accessToken);
     setUser(response.data.data.user);
     return response.data.data;
@@ -38,7 +38,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await authAPI.logout();
+      await logoutUser();
     } finally {
       localStorage.removeItem('accessToken');
       setUser(null);

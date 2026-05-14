@@ -1,110 +1,162 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { videoAPI } from '../api/apiService';
+import { getChannelStats, getChannelVideos } from '../api/dashboard.api';
+import { togglePublish, deleteVideo } from '../api/video.api';
 import { useAuth } from '../context/AuthContext';
 import './Dashboard.css';
 
 const Dashboard = () => {
-  const [stats, setStats] = useState({
-    totalViews: 0,
-    totalVideos: 0,
-    totalSubscribers: 0,
-    totalLikes: 0,
-  });
+  const { user } = useAuth();
+  const [stats, setStats] = useState(null);
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  const { user } = useAuth();
+  const [togglingId, setTogglingId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
 
   useEffect(() => {
-    if (user?._id) {
-      fetchUserVideos();
-    } else {
-      setLoading(false);
-    }
-  }, [user]);
+    fetchDashboard();
+  }, []);
 
-  const fetchUserVideos = async () => {
+  const fetchDashboard = async () => {
     try {
       setLoading(true);
-      const params = { limit: 100 };
-      if (user?._id) params.userId = user._id;
-      const response = await videoAPI.getAllVideos(params);
-      const userVideos = response.data.data?.docs || [];
-      
-      setVideos(userVideos);
-      setStats({
-        totalViews: userVideos.reduce((sum, v) => sum + (v.views || 0), 0),
-        totalVideos: userVideos.length,
-        totalSubscribers: 0,
-        totalLikes: 0,
-      });
+      const [statsRes, videosRes] = await Promise.all([
+        getChannelStats(),
+        getChannelVideos(),
+      ]);
+      setStats(statsRes.data.data);
+      setVideos(videosRes.data.data || []);
       setError(null);
     } catch (err) {
-      console.error('Error fetching videos:', err);
-      setError(err.message);
+      console.error('Dashboard error:', err);
+      setError(err.response?.data?.message || err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) {
-    return <div className="dashboard"><p>Loading dashboard...</p></div>;
-  }
+  const handleTogglePublish = async (videoId) => {
+    try {
+      setTogglingId(videoId);
+      await togglePublish(videoId);
+      setVideos(prev =>
+        prev.map(v => v._id === videoId ? { ...v, isPublished: !v.isPublished } : v)
+      );
+    } catch (err) {
+      console.error('Toggle error:', err);
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
+  const handleDelete = async (videoId) => {
+    if (!window.confirm('Delete this video permanently?')) return;
+    try {
+      setDeletingId(videoId);
+      await deleteVideo(videoId);
+      setVideos(prev => prev.filter(v => v._id !== videoId));
+      setStats(prev => prev ? { ...prev, totalVideos: prev.totalVideos - 1 } : prev);
+    } catch (err) {
+      console.error('Delete error:', err);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  if (loading) return <div className="dashboard"><p>Loading dashboard...</p></div>;
 
   return (
     <div className="dashboard">
-      <h1>Dashboard</h1>
+      <div className="dashboard-top">
+        <h1>Dashboard</h1>
+        <Link to="/upload" className="upload-link">⬆️ Upload Video</Link>
+      </div>
+
+      {error && <div className="dashboard-error">{error}</div>}
+
       <div className="dashboard-grid">
         <div className="dashboard-card">
           <h3>Total Views</h3>
-          <p className="stat-number">{stats.totalViews}</p>
+          <p className="stat-number">{stats?.totalViews?.toLocaleString() ?? 0}</p>
         </div>
         <div className="dashboard-card">
           <h3>Total Videos</h3>
-          <p className="stat-number">{stats.totalVideos}</p>
+          <p className="stat-number">{stats?.totalVideos ?? 0}</p>
         </div>
         <div className="dashboard-card">
           <h3>Subscribers</h3>
-          <p className="stat-number">{stats.totalSubscribers}</p>
+          <p className="stat-number">{stats?.totalSubscribers?.toLocaleString() ?? 0}</p>
         </div>
         <div className="dashboard-card">
           <h3>Total Likes</h3>
-          <p className="stat-number">{stats.totalLikes}</p>
+          <p className="stat-number">{stats?.totalLikes?.toLocaleString() ?? 0}</p>
         </div>
       </div>
 
-      <h2 style={{ marginTop: '32px' }}>Your Videos</h2>
-      {error && <div style={{color: 'red', marginBottom: '16px'}}>Error: {error}</div>}
-      <div className="videos-list">
+      <h2 style={{ margin: '32px 0 16px' }}>Your Videos</h2>
+      <div className="videos-table">
         {videos.length === 0 ? (
-          <p>No videos uploaded yet. <Link to="/upload">Upload your first video!</Link></p>
+          <div className="no-videos-msg">
+            <p>No videos yet. <Link to="/upload">Upload your first video!</Link></p>
+          </div>
         ) : (
-          videos.map((video) => (
-            <div key={video._id} className="video-item" style={{
-              padding: '12px',
-              border: '1px solid #ddd',
-              borderRadius: '4px',
-              marginBottom: '12px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}>
-              <div>
-                <h3>{video.title}</h3>
-                <p>{video.description}</p>
-                <small>
-                  Status: <strong>{video.isPublished ? '✅ Published' : '⏳ Unpublished'}</strong> | 
-                  Views: {video.views || 0} | 
-                  Duration: {video.duration || 0}s
-                </small>
-              </div>
-              <Link to={`/video/${video._id}`} style={{padding: '8px 16px', background: '#007bff', color: 'white', borderRadius: '4px', textDecoration: 'none'}}>
-                View
-              </Link>
-            </div>
-          ))
+          <table>
+            <thead>
+              <tr>
+                <th>Video</th>
+                <th>Status</th>
+                <th>Views</th>
+                <th>Likes</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {videos.map(video => (
+                <tr key={video._id}>
+                  <td>
+                    <div className="video-cell">
+                      <img
+                        src={video.thumbnail}
+                        alt={video.title}
+                        onError={(e) => { e.target.src = 'https://placehold.co/120x68' }}
+                      />
+                      <div>
+                        <p className="video-cell-title">{video.title}</p>
+                        <p className="video-cell-date">{new Date(video.createdAt).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span className={`status-badge ${video.isPublished ? 'published' : 'draft'}`}>
+                      {video.isPublished ? 'Published' : 'Draft'}
+                    </span>
+                  </td>
+                  <td>{video.views || 0}</td>
+                  <td>{video.likesCount || 0}</td>
+                  <td>
+                    <div className="action-btns">
+                      <Link to={`/video/${video._id}`} className="action-link">View</Link>
+                      <button
+                        className="toggle-btn"
+                        onClick={() => handleTogglePublish(video._id)}
+                        disabled={togglingId === video._id}
+                      >
+                        {togglingId === video._id ? '...' : video.isPublished ? 'Unpublish' : 'Publish'}
+                      </button>
+                      <button
+                        className="delete-btn"
+                        onClick={() => handleDelete(video._id)}
+                        disabled={deletingId === video._id}
+                      >
+                        {deletingId === video._id ? '...' : 'Delete'}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
       </div>
     </div>

@@ -1,14 +1,5 @@
-.liked-videos {
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.liked-videos h1 {
-  margin-bottom: 24px;
-}
-
-.videos-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 16px;
-}
+.liked-videos { max-width: 1200px; margin: 0 auto; }
+.liked-videos h1 { margin-bottom: 24px; }
+.liked-loading, .liked-empty { display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 300px; color: #606060; gap: 12px; }
+.browse-link { color: #065fd4; text-decoration: none; font-weight: 500; }
+.videos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }

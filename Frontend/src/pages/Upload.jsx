@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { videoAPI } from '../api/apiService';
+import { publishVideo } from '../api/video.api';
 import './Upload.css';
 
 const Upload = () => {
@@ -62,7 +62,7 @@ const Upload = () => {
       uploadData.append('title', formData.title);
       uploadData.append('description', formData.description);
 
-      const response = await videoAPI.uploadVideo(uploadData);
+      const response = await publishVideo(uploadData);
       console.log('Upload successful:', response);
       navigate('/dashboard');
     } catch (err) {

@@ -4,7 +4,7 @@ import {User} from "../models/user.model.js"
 import {ApiError} from "../utils/ApiError.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
-import {uploadOnCloudinary} from "../utils/cloudinary.js"
+import {uploadOnCloudinary, deleteFromCloudinary} from "../utils/cloudinary.js"
 
 
 const getAllVideos = asyncHandler(async (req, res) => {
@@ -210,6 +210,7 @@ const getVideoById = asyncHandler(async (req, res) => {
                 pipeline: [
                     {
                         $project: {
+                            _id: 1,
                             username: 1,
                             fullName: 1,
                             avatar: 1
@@ -261,8 +262,6 @@ const updateVideo = asyncHandler(async (req, res) => {
         );
     }
 
-    //TODO: delete old thumbnail and upload new thumbnail
-
     const thumbnailToDelete = video.thumbnail;
 
     let thumbnailLocalPath;
@@ -298,6 +297,10 @@ const updateVideo = asyncHandler(async (req, res) => {
         throw new ApiError(500, "Failed to update video please try again");
     }
 
+    if (thumbnail && thumbnailToDelete) {
+        await deleteFromCloudinary(thumbnailToDelete)
+    }
+
     return res
         .status(200)
         .json(new ApiResponse(200, updatedVideo, "Video updated successfully"));
@@ -324,13 +327,14 @@ const deleteVideo = asyncHandler(async (req, res) => {
         );
     }
 
-    //TODO: delete video and thumbnail from cloudinary
-
     const videoDeleted = await Video.findByIdAndDelete(video?._id);
 
     if (!videoDeleted) {
         throw new ApiError(400, "Failed to delete the video please try again");
     }
+
+    await deleteFromCloudinary(video.videoFile, "video")
+    await deleteFromCloudinary(video.thumbnail)
 
     return res
         .status(200)
