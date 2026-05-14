@@ -6,6 +6,7 @@ import './LikedVideos.css';
 const LikedVideos = () => {
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchLikedVideos();
@@ -16,14 +17,15 @@ const LikedVideos = () => {
       const response = await getLikedVideos();
       const docs = response.data.data?.docs || response.data.data || [];
       setVideos(docs.map(item => item.likedVideo || item).filter(Boolean));
-    } catch (error) {
-      console.error('Error fetching liked videos:', error);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to load liked videos');
     } finally {
       setLoading(false);
     }
   };
 
   if (loading) return <div className="liked-loading">Loading liked videos...</div>;
+  if (error) return <div className="liked-loading" style={{ color: 'red' }}>{error}</div>;
 
   return (
     <div className="liked-videos">

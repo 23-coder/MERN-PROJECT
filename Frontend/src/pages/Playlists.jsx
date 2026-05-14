@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { getUserPlaylists, createPlaylist, deletePlaylist } from '../api/playlist.api';
 import { useAuth } from '../context/AuthContext';
 import './Playlists.css';
@@ -23,7 +22,7 @@ const Playlists = () => {
       const res = await getUserPlaylists(user._id);
       setPlaylists(res.data.data || []);
     } catch (err) {
-      console.error('Error fetching playlists:', err);
+      setError(err.response?.data?.message || 'Failed to load playlists');
     } finally {
       setLoading(false);
     }
@@ -55,7 +54,7 @@ const Playlists = () => {
       await deletePlaylist(playlistId);
       setPlaylists(prev => prev.filter(p => p._id !== playlistId));
     } catch (err) {
-      console.error('Delete error:', err);
+      setError(err.response?.data?.message || 'Failed to delete playlist');
     }
   };
 
@@ -70,9 +69,10 @@ const Playlists = () => {
         </button>
       </div>
 
+      {error && <div className="form-error">{error}</div>}
+
       {showForm && (
         <form className="playlist-form" onSubmit={handleCreate}>
-          {error && <div className="form-error">{error}</div>}
           <input
             type="text"
             placeholder="Playlist name"
@@ -101,17 +101,15 @@ const Playlists = () => {
         ) : (
           playlists.map(playlist => (
             <div key={playlist._id} className="playlist-card">
-              <Link to={`/playlist/${playlist._id}`} className="playlist-link">
-                <div className="playlist-thumb">
-                  <span>🎬</span>
-                  <span className="playlist-count">{playlist.totalVideos} videos</span>
-                </div>
-                <div className="playlist-info">
-                  <h3>{playlist.name}</h3>
-                  <p>{playlist.description}</p>
-                  <span className="playlist-views">{playlist.totalViews || 0} total views</span>
-                </div>
-              </Link>
+              <div className="playlist-thumb">
+                <span>🎬</span>
+                <span className="playlist-count">{playlist.totalVideos} videos</span>
+              </div>
+              <div className="playlist-info">
+                <h3>{playlist.name}</h3>
+                <p>{playlist.description}</p>
+                <span className="playlist-views">{playlist.totalViews || 0} total views</span>
+              </div>
               <button
                 className="delete-btn"
                 onClick={() => handleDelete(playlist._id)}

@@ -13,7 +13,6 @@ const generateAccessAndRefereshTokens = async (user) => {
             throw new ApiError(500, "Invalid user object for token generation")
         }
 
-        // Ensure a Mongoose document is used so save() is available
         const userDoc = typeof user.save === 'function' ? user : await User.findById(user._id)
         if (!userDoc) {
             throw new ApiError(500, "Failed to resolve user document for token generation")
@@ -46,25 +45,12 @@ const generateAccessAndRefereshTokens = async (user) => {
         return {accessToken, refreshToken}
 
     } catch (error) {
-        console.error("Token generation error:", error.message || error);
         throw new ApiError(500, "Something went wrong while generating refresh and access token: " + error.message)
     }
 }
 
 const registerUser = asyncHandler( async (req, res) => {
-    // get user details from frontend
-    // validation - not empty
-    // check if user already exists: username, email
-    // check for images, check for avatar
-    // upload them to cloudinary, avatar
-    // create user object - create entry in db
-    // remove password and refresh token field from response
-    // check for user creation
-    // return res
-
-
     const {fullName, email, username, password } = req.body
-    //console.log("email: ", email);
 
     if (
         [fullName, email, username, password].some((field) => field?.trim() === "")
@@ -79,27 +65,24 @@ const registerUser = asyncHandler( async (req, res) => {
     if (existedUser) {
         throw new ApiError(409, "User with email or username already exists")
     }
-    //console.log(req.files);
 
     const avatarLocalPath = req.files?.avatar?.[0]?.path;
-    
+
     let coverImageLocalPath;
     if (req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0) {
         coverImageLocalPath = req.files.coverImage[0].path
     }
-    
-    // Avatar is optional for registration
+
     let avatar = null;
-     let coverImage = null;
-    
+    let coverImage = null;
+
     if (avatarLocalPath) {
         avatar = await uploadOnCloudinary(avatarLocalPath)
     }
-    
+
     if (coverImageLocalPath) {
         coverImage = await uploadOnCloudinary(coverImageLocalPath)
     }
-   
 
     const user = await User.create({
         fullName,
@@ -119,7 +102,6 @@ const registerUser = asyncHandler( async (req, res) => {
         throw new ApiError(500, "Something went wrong while registering the user")
     }
 
-    // Generate tokens for auto-login after registration
     const { accessToken, refreshToken } = await generateAccessAndRefereshTokens(createdUser)
 
     const options = {
@@ -144,25 +126,11 @@ const registerUser = asyncHandler( async (req, res) => {
 } )
 
 const loginUser = asyncHandler(async (req, res) =>{
-    // req body -> data
-    // username or email
-    //find the user
-    //password check
-    //access and referesh token
-    //send cookie
-
     const {email, username, password} = req.body
-    console.log(email);
 
     if (!username && !email) {
         throw new ApiError(400, "username or email is required")
     }
-    
-    // Here is an alternative of above code based on logic discussed in video:
-    // if (!(username || email)) {
-    //     throw new ApiError(400, "username or email is required")
-        
-    // }
 
     const user = await User.findOne({
         $or: [{username}, {email}]
@@ -193,7 +161,7 @@ const loginUser = asyncHandler(async (req, res) =>{
     .cookie("refreshToken", refreshToken, options)
     .json(
         new ApiResponse(
-            200, 
+            200,
             {
                 user: loggedInUser, accessToken, refreshToken
             },
@@ -208,7 +176,7 @@ const logoutUser = asyncHandler(async(req, res) => {
         req.user._id,
         {
             $unset: {
-                refreshToken: 1 // this removes the field from document
+                refreshToken: 1
             }
         },
         {
@@ -240,32 +208,31 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
             incomingRefreshToken,
             process.env.REFRESH_TOKEN_SECRET
         )
-    
+
         const user = await User.findById(decodedToken?._id)
-    
+
         if (!user) {
             throw new ApiError(401, "Invalid refresh token")
         }
-    
+
         if (incomingRefreshToken !== user?.refreshToken) {
             throw new ApiError(401, "Refresh token is expired or used")
-            
         }
-    
+
         const options = {
             httpOnly: true,
             secure: true
         }
-    
+
         const {accessToken, refreshToken: newRefreshToken} = await generateAccessAndRefereshTokens(user)
-    
+
         return res
         .status(200)
         .cookie("accessToken", accessToken, options)
         .cookie("refreshToken", newRefreshToken, options)
         .json(
             new ApiResponse(
-                200, 
+                200,
                 {accessToken, refreshToken: newRefreshToken},
                 "Access token refreshed"
             )
@@ -278,8 +245,6 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 
 const changeCurrentPassword = asyncHandler(async(req, res) => {
     const {oldPassword, newPassword} = req.body
-
-    
 
     const user = await User.findById(req.user?._id)
     const isPasswordCorrect = await user.isPasswordCorrect(oldPassword)
@@ -323,7 +288,7 @@ const updateAccountDetails = asyncHandler(async(req, res) => {
             }
         },
         {new: true}
-        
+
     ).select("-password")
 
     return res
@@ -458,7 +423,6 @@ const getUserChannelProfile = asyncHandler(async(req, res) => {
                 avatar: 1,
                 coverImage: 1,
                 email: 1
-
             }
         }
     ])

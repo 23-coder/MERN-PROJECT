@@ -2,11 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getChannelStats, getChannelVideos } from '../api/dashboard.api';
 import { togglePublish, deleteVideo } from '../api/video.api';
-import { useAuth } from '../context/AuthContext';
 import './Dashboard.css';
 
 const Dashboard = () => {
-  const { user } = useAuth();
   const [stats, setStats] = useState(null);
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -29,7 +27,6 @@ const Dashboard = () => {
       setVideos(videosRes.data.data || []);
       setError(null);
     } catch (err) {
-      console.error('Dashboard error:', err);
       setError(err.response?.data?.message || err.message);
     } finally {
       setLoading(false);
@@ -44,7 +41,7 @@ const Dashboard = () => {
         prev.map(v => v._id === videoId ? { ...v, isPublished: !v.isPublished } : v)
       );
     } catch (err) {
-      console.error('Toggle error:', err);
+      setError(err.response?.data?.message || 'Failed to toggle publish status');
     } finally {
       setTogglingId(null);
     }
@@ -58,7 +55,7 @@ const Dashboard = () => {
       setVideos(prev => prev.filter(v => v._id !== videoId));
       setStats(prev => prev ? { ...prev, totalVideos: prev.totalVideos - 1 } : prev);
     } catch (err) {
-      console.error('Delete error:', err);
+      setError(err.response?.data?.message || 'Failed to delete video');
     } finally {
       setDeletingId(null);
     }

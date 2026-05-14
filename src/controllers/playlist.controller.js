@@ -180,7 +180,7 @@ const addVideoToPlaylist = asyncHandler(async (req, res) => {
     }
 
     if (playlist.owner?.toString() !== req.user?._id.toString()) {
-        throw new ApiError(400, "only owner can add video to their playlist");
+        throw new ApiError(403, "only owner can add video to their playlist");
     }
 
     const updatedPlaylist = await Playlist.findByIdAndUpdate(
@@ -221,7 +221,7 @@ const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
     }
 
     if (playlist.owner?.toString() !== req.user?._id.toString()) {
-        throw new ApiError(400, "only owner can remove video from their playlist");
+        throw new ApiError(403, "only owner can remove video from their playlist");
     }
 
     const updatedPlaylist = await Playlist.findByIdAndUpdate(
@@ -253,7 +253,7 @@ const deletePlaylist = asyncHandler(async (req, res) => {
     }
 
     if (playlist.owner.toString() !== req.user?._id.toString()) {
-        throw new ApiError(400, "only owner can delete the playlist");
+        throw new ApiError(403, "only owner can delete the playlist");
     }
 
     await Playlist.findByIdAndDelete(playlistId);
@@ -282,7 +282,7 @@ const updatePlaylist = asyncHandler(async (req, res) => {
     }
 
     if (playlist.owner.toString() !== req.user?._id.toString()) {
-        throw new ApiError(400, "only owner can edit the playlist");
+        throw new ApiError(403, "only owner can edit the playlist");
     }
 
     const updatedPlaylist = await Playlist.findByIdAndUpdate(

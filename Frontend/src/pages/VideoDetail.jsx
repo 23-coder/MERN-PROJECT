@@ -27,17 +27,14 @@ const VideoDetail = () => {
     try {
       setLoading(true);
       setError(null);
-      console.log('Fetching video:', videoId);
       const response = await getVideoById(videoId);
-      console.log('Video response:', response.data);
-      
+
       if (response.data.data) {
         setVideo(response.data.data);
       } else {
         setError('Video data not found in response');
       }
     } catch (error) {
-      console.error('Error fetching video:', error);
       setError(error.response?.data?.message || error.message || 'Failed to load video');
     } finally {
       setLoading(false);
@@ -46,14 +43,10 @@ const VideoDetail = () => {
 
   const fetchComments = async () => {
     try {
-      console.log('Fetching comments for video:', videoId);
       const response = await getVideoComments(videoId);
-      console.log('Comments response:', response.data);
       const data = response.data.data;
-      // aggregatePaginate returns { docs: [] }, plain array is a fallback
       setComments(Array.isArray(data) ? data : data?.docs || []);
-    } catch (error) {
-      console.error('Error fetching comments:', error);
+    } catch {
       setComments([]);
     }
   };
@@ -67,7 +60,7 @@ const VideoDetail = () => {
       setCommentText('');
       fetchComments();
     } catch (error) {
-      console.error('Error adding comment:', error);
+      setError(error.response?.data?.message || 'Failed to add comment');
     }
   };
 
@@ -75,8 +68,8 @@ const VideoDetail = () => {
     try {
       const res = await toggleVideoLike(videoId);
       setIsLiked(res.data.data.isLiked);
-    } catch (error) {
-      console.error('Error liking video:', error);
+    } catch {
+      // silently ignore
     }
   };
 
@@ -85,8 +78,8 @@ const VideoDetail = () => {
     try {
       const res = await toggleSubscription(video.owner._id);
       setIsSubscribed(res.data.data.subscribed);
-    } catch (error) {
-      console.error('Error subscribing:', error);
+    } catch {
+      // silently ignore
     }
   };
 
@@ -161,21 +154,31 @@ const VideoDetail = () => {
       <div className="comments-section">
         <h2>Comments ({comments.length})</h2>
 
-        <form onSubmit={handleAddComment} className="comment-form">
-          <input
-            type="text"
-            placeholder="Add a comment..."
-            value={commentText}
-            onChange={(e) => setCommentText(e.target.value)}
-            className="comment-input"
-          />
-          <button type="submit" className="comment-btn">Comment</button>
-        </form>
+        {user ? (
+          <form onSubmit={handleAddComment} className="comment-form">
+            <input
+              type="text"
+              placeholder="Add a comment..."
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              className="comment-input"
+            />
+            <button type="submit" className="comment-btn">Comment</button>
+          </form>
+        ) : (
+          <p style={{ color: '#606060', marginBottom: '16px' }}>
+            <Link to="/login" style={{ color: '#065fd4' }}>Sign in</Link> to add a comment
+          </p>
+        )}
 
         <div className="comments-list">
           {comments.map((comment) => (
             <div key={comment._id} className="comment">
-              <img src={comment.owner?.avatar} alt={comment.owner?.username} />
+              <img
+                src={comment.owner?.avatar || 'https://placehold.co/40x40'}
+                alt={comment.owner?.username}
+                onError={(e) => { e.target.src = 'https://placehold.co/40x40' }}
+              />
               <div className="comment-content">
                 <p className="comment-author">{comment.owner?.username}</p>
                 <p className="comment-text">{comment.content}</p>

@@ -7,34 +7,26 @@ import {
     togglePublishStatus,
     updateVideo,
 } from "../controllers/video.controller.js"
-import {verifyJWT} from "../middlewares/auth.middleware.js"
+import {verifyJWT, optionalJWT} from "../middlewares/auth.middleware.js"
 import {upload} from "../middlewares/multer.middleware.js"
 
 const router = Router();
-// router.use(verifyJWT); // Remove global auth
 
 router
     .route("/")
-    .get(getAllVideos) // Public
+    .get(getAllVideos)
     .post(
-        verifyJWT, // Auth for upload
+        verifyJWT,
         upload.fields([
-            {
-                name: "videoFile",
-                maxCount: 1,
-            },
-            {
-                name: "thumbnail",
-                maxCount: 1,
-            },
-            
+            { name: "videoFile", maxCount: 1 },
+            { name: "thumbnail", maxCount: 1 },
         ]),
         publishAVideo
     );
 
 router
     .route("/:videoId")
-    .get(verifyJWT, getVideoById) // Auth for specific video
+    .get(optionalJWT, getVideoById)
     .delete(verifyJWT, deleteVideo)
     .patch(verifyJWT, upload.single("thumbnail"), updateVideo);
 

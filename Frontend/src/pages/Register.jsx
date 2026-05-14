@@ -28,17 +28,14 @@ const Register = () => {
     setLoading(true);
 
     try {
-      // Validate fields
       if (!formData.fullName || !formData.username || !formData.email || !formData.password) {
         setError("All fields are required");
-        setLoading(false);
         return;
       }
 
       await register(formData);
       navigate('/');
     } catch (err) {
-      console.error('Registration error:', err);
       setError(err.response?.data?.message || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);

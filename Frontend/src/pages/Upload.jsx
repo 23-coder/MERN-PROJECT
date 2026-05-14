@@ -34,25 +34,20 @@ const Upload = () => {
     setLoading(true);
 
     try {
-      // Validate that files are selected
       if (!formData.videoFile) {
         setError("Please select a video file");
-        setLoading(false);
         return;
       }
       if (!formData.thumbnail) {
         setError("Please select a thumbnail image");
-        setLoading(false);
         return;
       }
       if (!formData.title.trim()) {
         setError("Please enter a video title");
-        setLoading(false);
         return;
       }
       if (!formData.description.trim()) {
         setError("Please enter a video description");
-        setLoading(false);
         return;
       }
 
@@ -62,11 +57,9 @@ const Upload = () => {
       uploadData.append('title', formData.title);
       uploadData.append('description', formData.description);
 
-      const response = await publishVideo(uploadData);
-      console.log('Upload successful:', response);
+      await publishVideo(uploadData);
       navigate('/dashboard');
     } catch (err) {
-      console.error('Upload error:', err);
       setError(err.response?.data?.message || err.message || 'Upload failed. Please try again.');
     } finally {
       setLoading(false);
