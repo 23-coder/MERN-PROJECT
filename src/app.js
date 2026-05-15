@@ -8,6 +8,9 @@ import compression from "compression"
 
 const app = express()
 
+// Trust Railway/Vercel/Render reverse proxy so express-rate-limit reads the correct client IP
+app.set('trust proxy', 1)
+
 // Secure HTTP headers
 app.use(helmet())
 
